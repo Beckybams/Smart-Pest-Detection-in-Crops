@@ -1,0 +1,93 @@
+# Smart Pest Detection in Crops using Synthetic Data
+
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report
+import matplotlib.pyplot as plt
+
+# -----------------------------
+# 1. Generate Synthetic Dataset
+# -----------------------------
+
+np.random.seed(42)
+samples = 1000
+
+data = {
+    "leaf_color_intensity": np.random.uniform(0, 1, samples),
+    "leaf_spot_density": np.random.uniform(0, 1, samples),
+    "hole_presence": np.random.randint(0, 2, samples),
+    "leaf_texture_variation": np.random.uniform(0, 1, samples),
+    "humidity_level": np.random.uniform(30, 90, samples),
+}
+
+df = pd.DataFrame(data)
+
+# Target label: 1 = Pest detected, 0 = Healthy
+df["pest_detected"] = (
+    (df["leaf_spot_density"] > 0.6) |
+    (df["hole_presence"] == 1) |
+    (df["leaf_texture_variation"] > 0.65)
+).astype(int)
+
+# -----------------------------
+# 2. Train-Test Split
+# -----------------------------
+
+X = df.drop("pest_detected", axis=1)
+y = df["pest_detected"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# -----------------------------
+# 3. Train AI Model
+# -----------------------------
+
+model = RandomForestClassifier(
+    n_estimators=100,
+    max_depth=8,
+    random_state=42
+)
+model.fit(X_train, y_train)
+
+# -----------------------------
+# 4. Model Evaluation
+# -----------------------------
+
+y_pred = model.predict(X_test)
+
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+
+# -----------------------------
+# 5. Feature Importance
+# -----------------------------
+
+importance = model.feature_importances_
+features = X.columns
+
+plt.figure()
+plt.barh(features, importance)
+plt.xlabel("Importance Score")
+plt.title("Feature Importance - Pest Detection")
+plt.show()
+
+# -----------------------------
+# 6. Sample Prediction
+# -----------------------------
+
+sample_crop = pd.DataFrame({
+    "leaf_color_intensity": [0.4],
+    "leaf_spot_density": [0.8],
+    "hole_presence": [1],
+    "leaf_texture_variation": [0.7],
+    "humidity_level": [75]
+})
+
+prediction = model.predict(sample_crop)
+
+print("\nPrediction for sample crop:")
+print("Pest Detected" if prediction[0] == 1 else "Healthy Crop")
